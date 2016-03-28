@@ -9,7 +9,8 @@
 
 \newcommand{\glnote}[1]{\textcolor{red}{[GL: #1]}}
 
-\title{Learning to Transfer with Triply Adversarial Nets}
+\title{Learning to Transfer with \\
+Tripartite Adversarial and Cooperative Training}
 
 
 \author{
@@ -51,13 +52,13 @@ due to a different representation of the same underlying objects.
 Accordingly, we propose to learn how to transform source instances into target
 instances, possibly across input spaces of distinct dimensions, structures or
 supports. For this purpose, we extend the generative adversarial networks
-framework of \cite{goodfellow2014generative} to a triply adversarial process: a
+framework of \cite{goodfellow2014generative} to a tripartite adversarial and cooperative training process: a
 transformer network $G$ for generating target instances from source instances, a
 discriminative network $D$ for separating transformed source instances from
 actual target instances, and a classifier network $C \circ G$ for classifying source
 instances in the projected space. This 3-player game results in a network $G$
 capable of transforming source into target instances, while preserving
-separation between classes as enabled by $C$ in the adversarial setup.
+separation between classes as enabled by the cooperative training of $G$ with $C$.
 Preliminary experiments demonstrate the potential of this novel approach, with promising
 results when the construction of $C$ can be bootstrapped in a semi-supervised
 way  from a few labeled instances from the target space.
@@ -134,9 +135,6 @@ learning to transfer across natural images from distinct datasets but
 representing the same concepts or when learning to adapt to a change of a
 measurement apparatus (but not of the underlying objects to be observed).
 
-\glnote{What are the necessary conditions on $p_{X,Y}$ and $p_U$ for
-        the existence of $T$? and of $\hat T$? I think results can be proven using information theory.}
-
 % XXX: unsupervised learning
 
 
@@ -154,15 +152,12 @@ words, assuming enough capacity in $D$, the distribution $p_{G(Z)}$ of fake
 samples converges towards the distribution of real samples.
 
 In this work, we extend the GAN framework by first noticing that if we replace
-the noise distribution $p_Z$ by the joint source distribution $p_{X,Y}$ and consider
-the real data distribution as the target distribution $p_U$, then the generative
-model $G$ is a transfer function $\hat T : \mathbb{R}^p \times {\cal Y} \mapsto \mathbb{R}^q$
-satisfying Eqn.~\ref{eqn:tf-proxy}. That is, generative adversarial networks
-provide a direct way for learning to transfer.
-
-\begin{theorem}
-At the equilibrium, $G$ satisfies Eqn.~\ref{eqn:tf-proxy}. \glnote{This seems a direct consequence of the convergence results of \cite{goodfellow2014generative}. Needs to be double-checked.}
-\end{theorem}
+the noise distribution $p_Z$ by the joint source distribution $p_{X,Y}$ and
+consider the real data distribution as the target distribution $p_U$, then the
+generative model $G$ is a transfer function $\hat T : \mathbb{R}^p \times {\cal
+Y} \mapsto \mathbb{R}^q$ satisfying Eqn.~\ref{eqn:tf-proxy} (this is a direct
+consequence of Theorem~1 of \cite{goodfellow2014generative}). As a result,
+generative adversarial networks provide a direct way for learning to transfer.
 
 As noted earlier, transfer functions $\hat T$ satisfying Eqn.~\ref{eqn:tf-proxy}
 are not unique. It is therefore critical to guide
@@ -178,9 +173,10 @@ of $\hat T(X,Y)$ are indistinguishable from realizations of $U$, while preservin
 the class distribution and separability in the target space.
 In order to satisfy this constraint, we extend the GAN framework by
 adding a third network in the pit: a classifier $C$ whose objective is to classify
-labeled source samples in the projected space.
-Accordingly, we extend $G$'s objective function so as to maximize $C$'s accuracy,
-while still fooling $D$. Formally, assuming binary classification (i.e. ${\cal Y} = \{0, 1\}$), the three networks $D$, $C$ and $G$ are
+labeled source samples in the projected space and whose training is carried
+out in cooperation with $G$.
+Formally, we extend $G$'s objective function so as to maximize $C$'s accuracy in a cooperative fashion,
+while still trying to fool the adversary $D$. Assuming binary classification (i.e. ${\cal Y} = \{0, 1\}$), the three networks $D$, $C$ and $G$ are
 concurrently trained so as to minimize the respective loss functions:
 
 \begin{align}
@@ -189,16 +185,16 @@ concurrently trained so as to minimize the respective loss functions:
     L(G) &= \mathbb{E}_{x,y \sim p_{X,Y}} [\log(D(G(x, y)))] + L(C)
 \end{align}
 
-This 3-player game results in a network $G$
+At the equilibrium, this 3-player game results in a network $G$
 capable of transforming source into target instances, while preserving
-separation between classes as enabled by $C$ in the adversarial setup.
+separation between classes as enabled by the cooperative training of $G$ with $C$.
 Accordingly, when the transformed source distribution equals the
 target distribution, $C$ converges towards a classifier that can be used
 for classifying samples from the target space, thereby providing a solution
 to transfer learning for classification.
 
 \begin{theorem}
-At the equilibrium, Eqn.~\ref{eqn:preservation} is satisfied. \glnote{Hmmm, yes, but this should be true only under the assumption that $\min_C L(C) = 0$. }
+At the equilibrium, Eqn.~\ref{eqn:tf-proxy} and ~\ref{eqn:preservation} are satisfied. \glnote{Provided $G$ has enough capacity.}
 \end{theorem}
 
 \glnote{Add figure}
@@ -220,7 +216,7 @@ label, hence yielding a plausible transfer function. Formally,
 the loss function $L(C)$ is replaced with
 \begin{align}\label{eqn:loss-C-semi}
     L(C) =&~ \gamma (-\mathbb{E}_{x \sim p_{X|Y=0}} [\log(1 - C(G(x, y=0)))] -\mathbb{E}_{x \sim p_{X|Y=1}} [\log(C(G(x, y=1)))]) + \nonumber \\
-          & (1 - \gamma) (-\mathbb{E}_{u \sim p_{U|Y=0}} [\log(1 - C(u)] -\mathbb{E}_{x \sim p_{U|Y=1}} [\log(C(u))])
+          & (1 - \gamma) (-\mathbb{E}_{u \sim p_{U|Y=0}} [\log(1 - C(u)] -\mathbb{E}_{u \sim p_{U|Y=1}} [\log(C(u))])
 \end{align}
 where $\gamma$ is a parameter trading off the weight of incorrect predictions for seed samples
 and where expectations $\mathbb{E}_{u \sim p_{U|Y}}$ are approximated empirically
